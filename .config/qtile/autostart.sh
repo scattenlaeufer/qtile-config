@@ -2,3 +2,4 @@
 
 kanshi &
 picom -b &
+dunst &

@@ -1,3 +1,8 @@
+"""
+My personal qtile configuration. The default config was used as a start and
+then extended to meet my personal meets.
+"""
+
 # Copyright (c) 2010 Aldo Cortesi
 # Copyright (c) 2010, 2014 dequis
 # Copyright (c) 2012 Randall Ma
@@ -24,6 +29,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import os
 import subprocess
 from pathlib import Path
 
@@ -45,6 +51,20 @@ rofi_cmd = "rofi -show drun"
 def autostart():
     subprocess.call(str(Path("~/.config/qtile/autostart.sh").expanduser()))
     # lazy.spawn("kanshi")
+
+    # setting environment for systemd and dbus
+    denv = dict(os.environ)
+    denv["XDG_CURREN_DESKTOP"] = "qtile"
+    p = subprocess.Popen(
+        [
+            "systemctl",
+            "--user",
+            "import-environment",
+            "WAYLAND_DISPLAY",
+            "XDG_CURRENT_DESKTOP",
+        ],
+        env=denv,
+    ).wait()
 
 
 @hook.subscribe.suspend
@@ -166,24 +186,34 @@ for i in groups:
                 [mod],
                 i.name,
                 lazy.group[i.name].toscreen(),
-                desc="Switch to group {}".format(i.name),
+                desc=f"Switch to group {i.name}",
             ),
             # mod + shift + group number = switch to & move focused window to group
             Key(
                 [mod, "shift"],
                 i.name,
                 lazy.window.togroup(i.name, switch_group=True),
-                desc="Switch to & move focused window to group {}".format(i.name),
+                desc=f"Switch to & move focused window to group {i.name}",
             ),
-            # Or, use below if you prefer not to switch to that group.
-            # # mod + shift + group number = move focused window to group
-            # Key([mod, "shift"], i.name, lazy.window.togroup(i.name),
-            #     desc="move focused window to group {}".format(i.name)),
+            # mod + shift + group number = move focused window to group
+            Key(
+                [mod, "control"],
+                i.name,
+                lazy.window.togroup(i.name),
+                desc=f"move focused window to group {i.name}",
+            ),
         ]
     )
 
 layouts = [
-    layout.Columns(border_focus_stack=["#0788c9", "#002376"], border_width=1),
+    layout.Columns(
+        border_focus_stack=["#0788c9", "#002376"],
+        border_focus="#0788c9",
+        border_normal="#000070",
+        border_width=1,
+        insert_position=1,
+        num_columns=3,
+    ),
     layout.Max(),
     # Try more layouts by unleashing below layouts.
     # layout.Stack(num_stacks=2),
@@ -200,26 +230,43 @@ layouts = [
         **{
             "window.border_size": 1,
             "tab_bar.height": 20,
-            # "tab_bar.tab.title_provider": lambda _, a, _: a.window.name,
+            "tab_bar.tab.width": "auto",
+            "tab_bar.tab.title_provider": lambda _index, active_pane, _tab: active_pane.window.name,
         }
     ),
 ]
 
-widget_defaults = dict(
-    font="sans",
-    fontsize=10,
-    padding=3,
-)
+widget_defaults = {"font": "DejaVus ans mono", "fontsize": 12, "padding": 3}
 extension_defaults = widget_defaults.copy()
 
+cpu_widget = widget.CPU(format="CPU {freq_current:3.1f}GHz {load_percent:5.1f}%")
+cpu_graph_widget = widget.CPUGraph()
+mem_widget = widget.Memory(
+    format="Mem: {MemUsed:4.1f}{mm}/{MemTotal:4.1f}{mm} Swap: {SwapUsed:4.1f}{ms}/{SwapTotal:4.1f}{ms}",
+    measure_mem="G",
+    measure_swap="G",
+)
+mem_graph_widget = widget.MemoryGraph()
 clock_widget = widget.Clock(format="KW%W %Y-%m-%d %a %H:%M:%S")
-volume_widget = widget.Volume()
+volume_widget = widget.PulseVolume()
+battery_widget = widget.Battery()
 
-bar_height = 20
-top_bar = bar.Bar(
+net_widget = widget.Net(prefix="M")
+wlan_widget = widget.Wlan(format="{essid} {percent:2.0%}")
+
+mpd_widget = widget.Mpd2(idle_message="mopidy idle")
+
+sep_widget = widget.Sep()
+
+bar_height = 24
+main_bar = bar.Bar(
     [
-        widget.CurrentLayout(),
-        widget.GroupBox(),
+        widget.CurrentLayoutIcon(),
+        sep_widget,
+        widget.GroupBox(disable_drag=True),
+        sep_widget,
+        widget.CurrentScreen(),
+        sep_widget,
         widget.Prompt(),
         widget.WindowName(),
         widget.Chord(
@@ -228,63 +275,87 @@ top_bar = bar.Bar(
             },
             name_transform=lambda name: name.upper(),
         ),
-        widget.TextBox("default config", name="default"),
-        widget.TextBox("Press &lt;M-r&gt; to spawn", foreground="#d75f5f"),
-        # NB Systray is incompatible with Wayland, consider using StatusNotifier instead
-        widget.StatusNotifier(),
+        mpd_widget,
+        sep_widget,
+        cpu_graph_widget,
+        cpu_widget,
+        sep_widget,
+        mem_graph_widget,
+        mem_widget,
+        sep_widget,
+        wlan_widget,
+        net_widget,
+        sep_widget,
+        battery_widget,
+        sep_widget,
         volume_widget,
+        sep_widget,
         clock_widget,
-        widget.QuickExit(),
+        sep_widget,
+        widget.StatusNotifier(),
     ],
     bar_height,
     # border_width=[2, 0, 2, 0],  # Draw top and bottom borders
     # border_color=["ff00ff", "000000", "ff00ff", "000000"]  # Borders are magenta
 )
 
+
+def build_other_bar() -> bar.Bar:
+    """
+    Create a Bar object to be used on screens other than the main srcenn
+
+    :return: Bar for other screens
+    """
+    return bar.Bar(
+        [
+            widget.CurrentLayoutIcon(),
+            sep_widget,
+            widget.GroupBox(disable_drag=True),
+            sep_widget,
+            widget.CurrentScreen(),
+            sep_widget,
+            widget.WindowName(),
+            mpd_widget,
+            sep_widget,
+            cpu_graph_widget,
+            cpu_widget,
+            sep_widget,
+            mem_graph_widget,
+            mem_widget,
+            sep_widget,
+            wlan_widget,
+            net_widget,
+            sep_widget,
+            battery_widget,
+            sep_widget,
+            volume_widget,
+            sep_widget,
+            clock_widget,
+        ],
+        bar_height,
+    )
+
+
 wallpaper_path = Path("~/.config/qtile/backgrounds/green-galaxy.jpg")
 
 screens = [
     Screen(
-        top=top_bar,
+        top=main_bar,
         wallpaper=str(wallpaper_path.expanduser()),
         wallpaper_mode="fill",
     ),
     Screen(
-        top=bar.Bar(
-            [
-                widget.CurrentLayout(),
-                widget.GroupBox(),
-                widget.WindowName(),
-                clock_widget,
-            ],
-            bar_height,
-        ),
+        top=build_other_bar(),
         wallpaper=str(wallpaper_path.expanduser()),
         wallpaper_mode="fill",
     ),
     Screen(
-        top=bar.Bar(
-            [
-                widget.CurrentLayout(),
-                widget.GroupBox(),
-                widget.WindowName(),
-                clock_widget,
-            ],
-            bar_height,
-        ),
+        top=build_other_bar(),
         wallpaper=str(wallpaper_path.expanduser()),
         wallpaper_mode="fill",
     ),
     Screen(
-        top=bar.Bar(
-            [
-                widget.CurrentLayout(),
-                widget.GroupBox(),
-                widget.WindowName(),
-                clock_widget,
-            ],
-            bar_height,
-        ),
+        top=build_other_bar(),
         wallpaper=str(wallpaper_path.expanduser()),
         wallpaper_mode="fill",
     ),
