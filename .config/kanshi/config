@@ -9,6 +9,12 @@ profile office-desk {
     output eDP-1 mode 2880x1800 position 11520,0
 }
 
+profile home-ofice {
+    output DP-5 mode 3840x2160 position 0,0
+    output DP-10 mode 3840x2160 position 3840,0
+    output eDP-1 mode 2880x1800 position 7680,0
+}
+
 profile office-desk-foo {
     output DP-8 mode 3840x2160 position 0,0
     output DP-7 mode 3840x2160 position 3840,0

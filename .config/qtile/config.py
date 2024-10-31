@@ -30,15 +30,18 @@ then extended to meet my personal meets.
 # SOFTWARE.
 
 import os
+import logging
 import subprocess
 from pathlib import Path
 
 from libqtile import bar, hook, layout, qtile, widget
 from libqtile.backend.wayland import InputConfig
-from libqtile.config import Click, Drag, Group, Key, Match, Screen
+from libqtile.config import Click, Drag, Group, Key, Match, Screen, ScratchPad, DropDown
 from libqtile.lazy import lazy
 from libqtile.utils import guess_terminal
 from qtile_bonsai import Bonsai
+
+log = logging.getLogger(__name__)
 
 mod = "mod4"
 terminal = guess_terminal()
@@ -50,12 +53,12 @@ rofi_cmd = "rofi -show drun"
 @hook.subscribe.startup_once
 def autostart():
     subprocess.call(str(Path("~/.config/qtile/autostart.sh").expanduser()))
-    # lazy.spawn("kanshi")
 
     # setting environment for systemd and dbus
+    log.info("Setting info")
     denv = dict(os.environ)
     denv["XDG_CURREN_DESKTOP"] = "qtile"
-    p = subprocess.Popen(
+    with subprocess.Popen(
         [
             "systemctl",
             "--user",
@@ -64,7 +67,8 @@ def autostart():
             "XDG_CURRENT_DESKTOP",
         ],
         env=denv,
-    ).wait()
+    ) as process:
+        process.wait()
 
 
 @hook.subscribe.suspend
@@ -205,11 +209,14 @@ for i in groups:
         ]
     )
 
+groups.append(ScratchPad("scratchpad", [DropDown("term", "alacritty --option window.opacity=1", opacity=1)]))
+keys.extend([Key([], "F12", lazy.group["scratchpad"].dropdown_toggle("term"))])
+
 layouts = [
     layout.Columns(
         border_focus_stack=["#0788c9", "#002376"],
         border_focus="#0788c9",
-        border_normal="#000070",
+        border_normal="#424261",
         border_width=1,
         insert_position=1,
         num_columns=3,
