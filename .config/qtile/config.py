@@ -31,13 +31,25 @@ then extended to meet my personal meets.
 
 import os
 import logging
+import random
 import subprocess
 from pathlib import Path
 
 from libqtile import bar, hook, layout, qtile, widget
 from libqtile.backend.wayland import InputConfig
-from libqtile.config import Click, Drag, Group, Key, Match, Screen, ScratchPad, DropDown
+from libqtile.config import (
+    Click,
+    Drag,
+    Group,
+    Key,
+    KeyChord,
+    Match,
+    Screen,
+    ScratchPad,
+    DropDown,
+)
 from libqtile.lazy import lazy
+from libqtile.log_utils import logger
 from libqtile.utils import guess_terminal
 from qtile_bonsai import Bonsai
 
@@ -46,8 +58,18 @@ log = logging.getLogger(__name__)
 mod = "mod4"
 terminal = guess_terminal()
 
-lock_cmd = "swaylock --color 000000 --show-failed-attempts"
 rofi_cmd = "rofi -show drun"
+
+
+def lock_cmd():
+    r = lambda: random.randint(0, 50)
+    return f"swaylock --color {r():02x}{r():02x}{r():02x} --show-failed-attempts"
+
+
+@lazy.function
+def run_screenlock(qtile):
+    cmd = lock_cmd()
+    qtile.spawn(cmd)
 
 
 @hook.subscribe.startup_once
@@ -73,7 +95,7 @@ def autostart():
 
 @hook.subscribe.suspend
 def suspend_lock():
-    qtile.spawn(lock_cmd)
+    qtile.spawn(lock_cmd())
 
 
 neo = {
@@ -163,7 +185,22 @@ keys = [
     ),
     Key([mod, "control"], "q", lazy.shutdown(), desc="Shutdown Qtile"),
     Key([mod], "a", lazy.spawn(rofi_cmd), desc="Spawn rofi to launce a program"),
-    # Key([], "Pause", lazy.spawn(lock_cmd), desc="Lock screen on key press"),
+    KeyChord(
+        [],
+        "Scroll_Lock",
+        [Key([], "Pause", run_screenlock(), desc="Lock screen on key press")],
+    ),
+    # Key(
+    #     [],
+    #     "Pause",
+    #     run_screenlock(),
+    #     desc="Lock screen on key press",
+    # ),
+    # Multimedia Keys
+    Key([], "XF86AudioPlay", lazy.spawn("mpc toggle"), desc="Play/Pause via MPC"),
+    Key([], "XF86AudioNext", lazy.spawn("mpc next"), desc="Play next song via MPC"),
+    Key([], "XF86AudioPrev", lazy.spawn("mpc prev"), desc="Play prev song via MPC"),
+    Key([], "XF86AudioStop", lazy.spawn("mpc stop"), desc="Stop playback via MPC"),
 ]
 
 # Add key bindings to switch VTs in Wayland.
@@ -209,7 +246,12 @@ for i in groups:
         ]
     )
 
-groups.append(ScratchPad("scratchpad", [DropDown("term", "alacritty --option window.opacity=1", opacity=1)]))
+groups.append(
+    ScratchPad(
+        "scratchpad",
+        [DropDown("term", "alacritty --option window.opacity=1", opacity=1)],
+    )
+)
 keys.extend([Key([], "F12", lazy.group["scratchpad"].dropdown_toggle("term"))])
 
 layouts = [
