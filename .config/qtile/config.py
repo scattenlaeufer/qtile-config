@@ -32,6 +32,7 @@ then extended to meet my personal meets.
 import os
 import logging
 import random
+import socket
 import subprocess
 from pathlib import Path
 
@@ -59,6 +60,19 @@ mod = "mod4"
 terminal = guess_terminal()
 
 rofi_cmd = "rofi -show drun"
+
+
+def get_device_defaults(name: str):
+    default = {
+        "t490s.bguth.de": {
+            "wifi": "wlp0s20f3",
+        },
+        "ppcl025.bguth.de": {
+            "wifi": "wlan0",
+        },
+    }
+
+    return default[socket.gethostname()][name]
 
 
 def lock_cmd():
@@ -185,22 +199,40 @@ keys = [
     ),
     Key([mod, "control"], "q", lazy.shutdown(), desc="Shutdown Qtile"),
     Key([mod], "a", lazy.spawn(rofi_cmd), desc="Spawn rofi to launce a program"),
-    KeyChord(
-        [],
-        "Scroll_Lock",
-        [Key([], "Pause", run_screenlock(), desc="Lock screen on key press")],
-    ),
-    # Key(
+    # KeyChord(
     #     [],
-    #     "Pause",
-    #     run_screenlock(),
-    #     desc="Lock screen on key press",
+    #     "Scroll_Lock",
+    #     [Key([], "Pause", run_screenlock(), desc="Lock screen on key press")],
     # ),
+    Key(
+        [],
+        "Pause",
+        run_screenlock(),
+        desc="Lock screen on key press",
+    ),
     # Multimedia Keys
     Key([], "XF86AudioPlay", lazy.spawn("mpc toggle"), desc="Play/Pause via MPC"),
     Key([], "XF86AudioNext", lazy.spawn("mpc next"), desc="Play next song via MPC"),
     Key([], "XF86AudioPrev", lazy.spawn("mpc prev"), desc="Play prev song via MPC"),
     Key([], "XF86AudioStop", lazy.spawn("mpc stop"), desc="Stop playback via MPC"),
+    Key(
+        [],
+        "XF86AudioRaiseVolume",
+        lazy.spawn("pactl set-sink-volume @DEFAULT_SINK@ +3%"),
+        desc="Raise volume through PulseAudio",
+    ),
+    Key(
+        [],
+        "XF86AudioLowerVolume",
+        lazy.spawn("pactl set-sink-volume @DEFAULT_SINK@ -3%"),
+        desc="Lower volume through PulseAudio",
+    ),
+    Key(
+        [],
+        "XF86AudioMute",
+        lazy.spawn("pactl set-sink-mute @DEFAULT_SINK@ toggle"),
+        desc="Toggle mute volume through PulseAudio",
+    ),
 ]
 
 # Add key bindings to switch VTs in Wayland.
@@ -236,7 +268,7 @@ for i in groups:
                 lazy.window.togroup(i.name, switch_group=True),
                 desc=f"Switch to & move focused window to group {i.name}",
             ),
-            # mod + shift + group number = move focused window to group
+            # mod + control + group number = move focused window to group
             Key(
                 [mod, "control"],
                 i.name,
@@ -286,22 +318,31 @@ layouts = [
 ]
 
 widget_defaults = {"font": "DejaVus ans mono", "fontsize": 12, "padding": 3}
+graph_defaults = {"line_width": 1, "samples": 60}
 extension_defaults = widget_defaults.copy()
 
 cpu_widget = widget.CPU(format="CPU {freq_current:3.1f}GHz {load_percent:5.1f}%")
-cpu_graph_widget = widget.CPUGraph()
+cpu_graph_widget = widget.CPUGraph(**graph_defaults)
 mem_widget = widget.Memory(
     format="Mem: {MemUsed:4.1f}{mm}/{MemTotal:4.1f}{mm} Swap: {SwapUsed:4.1f}{ms}/{SwapTotal:4.1f}{ms}",
     measure_mem="G",
     measure_swap="G",
 )
-mem_graph_widget = widget.MemoryGraph()
+mem_graph_widget = widget.MemoryGraph(**graph_defaults)
 clock_widget = widget.Clock(format="KW%W %Y-%m-%d %a %H:%M:%S")
-volume_widget = widget.PulseVolume()
+volume_widget = widget.PulseVolume(
+    mouse_callbacks={
+        "Button1": lazy.spawn("pactl set-sink-mute @DEFAULT_SINK@ toggle"),
+        "Button4": lazy.spawn("pactl set-sink-volume @DEFAULT_SINK@ +3%"),
+        "Button5": lazy.spawn("pactl set-sink-volume @DEFAULT_SINK@ -3%"),
+    }
+)
 battery_widget = widget.Battery()
 
 net_widget = widget.Net(prefix="M")
-wlan_widget = widget.Wlan(format="{essid} {percent:2.0%}")
+wlan_widget = widget.Wlan(
+    interface=get_device_defaults("wifi"), format="{essid} {percent:2.0%}"
+)
 
 mpd_widget = widget.Mpd2(idle_message="mopidy idle")
 
@@ -310,7 +351,7 @@ sep_widget = widget.Sep()
 bar_height = 24
 main_bar = bar.Bar(
     [
-        widget.CurrentLayoutIcon(),
+        widget.CurrentLayout(),
         sep_widget,
         widget.GroupBox(disable_drag=True),
         sep_widget,
@@ -357,7 +398,7 @@ def build_other_bar() -> bar.Bar:
     """
     return bar.Bar(
         [
-            widget.CurrentLayoutIcon(),
+            widget.CurrentLayout(),
             sep_widget,
             widget.GroupBox(disable_drag=True),
             sep_widget,
