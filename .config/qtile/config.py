@@ -51,7 +51,7 @@ from libqtile.config import (
 from libqtile.lazy import lazy
 from libqtile.log_utils import logger
 from libqtile.utils import guess_terminal
-from qtile_bonsai import Bonsai
+# from qtile_bonsai import Bonsai
 
 log = logging.getLogger(__name__)
 
@@ -201,6 +201,38 @@ keys = [
     Key([], "XF86AudioNext", lazy.spawn("mpc next"), desc="Play next song via MPC"),
     Key([], "XF86AudioPrev", lazy.spawn("mpc prev"), desc="Play prev song via MPC"),
     Key([], "XF86AudioStop", lazy.spawn("mpc stop"), desc="Stop playback via MPC"),
+    # Audio Keys
+    Key(
+        [],
+        "XF86AudioMute",
+        lazy.spawn("wpctl set-mute @DEFAULT_SINK@ toggle"),
+        desc="Toggle audio mute",
+    ),
+    Key(
+        [],
+        "XF86AudioRaiseVolume",
+        lazy.spawn("wpctl set-volume @DEFAULT_SINK@ .03+"),
+        desc="Raise audio volume by 3%",
+    ),
+    Key(
+        [],
+        "XF86AudioLowerVolume",
+        lazy.spawn("wpctl set-volume @DEFAULT_SINK@ .03-"),
+        desc="Lower audio volume by 3%",
+    ),
+    # Monitor Brightness
+    Key(
+        [],
+        "XF86MonBrightnessDown",
+        lazy.spawn("brightnessctl set -q 10%-"),
+        desc="Lower monitor birghtness by 10%",
+    ),
+    Key(
+        [],
+        "XF86MonBrightnessUp",
+        lazy.spawn("brightnessctl set -q 10%+"),
+        desc="Raise monitor birghtness by 10%",
+    ),
 ]
 
 # Add key bindings to switch VTs in Wayland.
@@ -275,14 +307,14 @@ layouts = [
     layout.TreeTab(),
     # layout.VerticalTile(),
     # layout.Zoomy(),
-    Bonsai(
-        **{
-            "window.border_size": 1,
-            "tab_bar.height": 20,
-            "tab_bar.tab.width": "auto",
-            "tab_bar.tab.title_provider": lambda _index, active_pane, _tab: active_pane.window.name,
-        }
-    ),
+    # Bonsai(
+    #     **{
+    #         "window.border_size": 1,
+    #         "tab_bar.height": 20,
+    #         "tab_bar.tab.width": "auto",
+    #         "tab_bar.tab.title_provider": lambda _index, active_pane, _tab: active_pane.window.name,
+    #     }
+    # ),
 ]
 
 widget_defaults = {"font": "DejaVus ans mono", "fontsize": 12, "padding": 3}
@@ -310,14 +342,14 @@ sep_widget = widget.Sep()
 bar_height = 24
 main_bar = bar.Bar(
     [
-        widget.CurrentLayoutIcon(),
+        widget.CurrentLayout(mode="icon"),
         sep_widget,
         widget.GroupBox(disable_drag=True),
         sep_widget,
         widget.CurrentScreen(),
         sep_widget,
         widget.Prompt(),
-        widget.WindowName(),
+        widget.TaskList(),
         widget.Chord(
             chords_colors={
                 "launch": ("#ff0000", "#ffffff"),
@@ -357,13 +389,13 @@ def build_other_bar() -> bar.Bar:
     """
     return bar.Bar(
         [
-            widget.CurrentLayoutIcon(),
+            widget.CurrentLayout(mode="icon"),
             sep_widget,
             widget.GroupBox(disable_drag=True),
             sep_widget,
             widget.CurrentScreen(),
             sep_widget,
-            widget.WindowName(),
+            widget.TaskList(),
             mpd_widget,
             sep_widget,
             cpu_graph_widget,

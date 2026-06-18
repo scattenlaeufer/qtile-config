@@ -1,5 +1,6 @@
 #!/usr/bin/env sh
 
-kanshi &
-picom -b &
+# kanshi &
+shikane &
+# picom -b &
 dunst &
