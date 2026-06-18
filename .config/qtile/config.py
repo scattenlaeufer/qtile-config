@@ -93,6 +93,29 @@ def autostart():
         process.wait()
 
 
+@hook.subscribe.client_managed
+def float_dialogs(client):
+    pass
+
+
+@lazy.function
+def notify_window_info(qtile):
+    w = qtile.current_window
+    if not w:
+        return
+    i = w.info()
+    msg = "\n".join([
+        f"name:      {i.get('name')}",
+        f"wm_class:  {i.get('wm_class')}",
+        f"wm_type:   {i.get('wm_type')}",
+        f"shell:     {i.get('shell')}",
+        f"floating:  {i.get('floating')}",
+        f"position:  {i.get('x')}, {i.get('y')}",
+        f"size:      {i.get('width')} x {i.get('height')}",
+    ])
+    qtile.spawn(f"notify-send 'Window Info' '{msg}'")
+
+
 @hook.subscribe.suspend
 def suspend_lock():
     qtile.spawn(lock_cmd())
@@ -185,6 +208,7 @@ keys = [
     ),
     Key([mod, "control"], "q", lazy.shutdown(), desc="Shutdown Qtile"),
     Key([mod], "a", lazy.spawn(rofi_cmd), desc="Spawn rofi to launce a program"),
+    Key([mod], "i", notify_window_info(), desc="Show focused window info"),
     KeyChord(
         [],
         "Scroll_Lock",
@@ -472,6 +496,9 @@ floating_layout = layout.Floating(
         Match(wm_class="ssh-askpass"),  # ssh-askpass
         Match(title="branchdialog"),  # gitk
         Match(title="pinentry"),  # GPG key password entry
+        Match(wm_type="dialog"),
+        Match(func=lambda c: bool(c.is_transient_for())),
+        Match(title="Open Files"),
     ]
 )
 auto_fullscreen = True
