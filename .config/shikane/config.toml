@@ -1,0 +1,120 @@
+[[profile]]
+name = "laptop builtin"
+exec = ["notify-send shikane \"Profile $SHIKANE_PROFILE_NAME has been applied\""]
+
+[[profile.output]]
+search = "eDP-1"
+enable = true
+
+
+[[profile]]
+name = "office"
+exec = ["notify-send shikane \"Profile $SHIKANE_PROFILE_NAME has been applied\""]
+
+[[profile.output]]
+enable = true
+search = ["m=DELL S2721QSA", "s=H98KZY3", "v=Dell Inc."]
+mode = "3840x2160@60Hz"
+position = "7680,0"
+scale = 1.0
+transform = "normal"
+adaptive_sync = false
+
+[[profile.output]]
+enable = true
+search = ["m=DELL S2721QSA", "s=DP5KZY3", "v=Dell Inc."]
+mode = "3840x2160@60Hz"
+position = "0,0"
+scale = 1.0
+transform = "normal"
+adaptive_sync = false
+
+[[profile.output]]
+enable = true
+search = ["m=DELL S2721QSA", "s=606KZY3", "v=Dell Inc."]
+mode = "3840x2160@60Hz"
+position = "3840,0"
+scale = 1.0
+transform = "normal"
+adaptive_sync = false
+
+[[profile.output]]
+enable = true
+search = ["m=0x419F", "s=", "v=Samsung Display Corp."]
+mode = "2880x1800@120Hz"
+position = "11520,0"
+scale = 1.0
+transform = "normal"
+adaptive_sync = false
+
+
+[[profile]]
+name = "Home Office"
+exec = ["notify-send shikane \"Profile $SHIKANE_PROFILE_NAME has been applied\""]
+
+[[profile.output]]
+enable = true
+search = ["m=0x419F", "s=", "v=Samsung Display Corp."]
+mode = "2880x1800@120Hz"
+position = "7680,0"
+scale = 1.0
+transform = "normal"
+adaptive_sync = false
+
+[[profile.output]]
+enable = true
+search = ["m=DELL U2723QE", "s=GS054P3", "v=Dell Inc."]
+mode = "3840x2160@59.997Hz"
+position = "0,0"
+scale = 1.0
+transform = "normal"
+adaptive_sync = false
+
+[[profile.output]]
+enable = true
+search = ["m=PHL 276E8V", "s=0x00000DC0", "v=Philips Consumer Electronics Company"]
+mode = "3840x2160@59.997Hz"
+position = "3840,0"
+scale = 1.0
+transform = "normal"
+adaptive_sync = false
+
+[[profile]]
+name = "aixigo Office"
+
+[[profile.output]]
+enable = true
+search = ["m=DELL S2721QSA", "s=DP5KZY3", "v=Dell Inc."]
+mode = "3840x2160@60Hz"
+position = "0,0"
+scale = 1.0
+transform = "normal"
+adaptive_sync = false
+
+[[profile.output]]
+enable = true
+search = ["m=DELL S2721QSA", "s=H98KZY3", "v=Dell Inc."]
+mode = "3840x2160@60Hz"
+position = "7680,0"
+scale = 1.0
+transform = "normal"
+adaptive_sync = false
+
+[[profile.output]]
+enable = true
+search = ["m=0x419F", "s=", "v=Samsung Display Corp."]
+mode = "2880x1800@120Hz"
+position = "11520,0"
+scale = 1.0
+transform = "normal"
+adaptive_sync = false
+
+[[profile.output]]
+enable = true
+search = ["m=DELL S2721QSA", "s=606KZY3", "v=Dell Inc."]
+mode = "3840x2160@60Hz"
+position = "3840,0"
+scale = 1.0
+transform = "normal"
+adaptive_sync = false
+
