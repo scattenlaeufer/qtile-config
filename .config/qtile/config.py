@@ -56,35 +56,7 @@ from libqtile.utils import guess_terminal
 # from qtile_bonsai import Bonsai
 
 from hosts import cfg
-
-# Workaround for qtile bug fixed in PR #5975 (not yet in installed version).
-# _finalize_configurables() finalizes widgets before bars, so a queued
-# Bar._actual_draw() can run after drawer.ctx and layout are already None.
-from libqtile.widget import base as _widget_base
-from libqtile import bar as _bar_module
-
-_orig_length = _widget_base._Widget.length.fget
-_orig_length_setter = _widget_base._Widget.length.fset
-
-
-def _patched_length(self: _widget_base._Widget) -> int:
-    if self.finalized:
-        return 0
-    return _orig_length(self)
-
-
-_widget_base._Widget.length = property(_patched_length, _orig_length_setter)
-
-_orig_actual_draw = _bar_module.Bar._actual_draw
-
-
-def _patched_actual_draw(self: _bar_module.Bar) -> None:
-    if not self.window:
-        return
-    _orig_actual_draw(self)
-
-
-_bar_module.Bar._actual_draw = _patched_actual_draw
+import qtile_fixes; qtile_fixes.apply()
 
 log = logging.getLogger(__name__)
 
@@ -428,46 +400,42 @@ def _build_bar(is_main: bool = False) -> bar.Bar:
         # border_color=["ff00ff", "000000", "ff00ff", "000000"]  # Borders are magenta
     )
 
-
-def _count_connected_outputs() -> int:
-    return max(
-        1,
-        sum(
-            1
-            for p in Path("/sys/class/drm").glob("card*-*")
-            if (p / "status").exists()
-            and (p / "status").read_text().strip() == "connected"
-        ),
-    )
-
-
 _wp = str(wallpaper_path.expanduser())
 
-# Cache Screen objects by output port so the same physical output always
-# maps to the same Screen instance across reconfiguration calls.
-# This prevents bar finalization (and the ctx=None hook-callback bug that
-# follows) when shikane re-fires screen_change events for the same outputs.
-_screen_cache: dict[str, Screen] = {}
+# Maps port name → (Screen, (x, y, width, height)).
+# Cleared per-entry when the output geometry changes so wlroots gets a fresh
+# internal window/surface after dock events where a screen moves position.
+_screen_cache: dict[str, tuple[Screen, tuple[int, int, int, int]]] = {}
 
 
 def generate_screens(outputs: list[Output]) -> list[Screen]:
-    sorted_outputs = sorted(outputs, key=lambda o: (o.rect.x, o.rect.y))
-    active_ports = {o.port for o in sorted_outputs}
+    active_ports = {o.port for o in outputs}
 
     for port in list(_screen_cache.keys()):
         if port not in active_ports:
             del _screen_cache[port]
 
+    # Determine which port gets the main bar (leftmost by position)
+    main_port = min(outputs, key=lambda o: (o.rect.x, o.rect.y)).port if outputs else None
+
     result: list[Screen] = []
-    for i, output in enumerate(sorted_outputs):
+    for output in outputs:
         port = output.port
+        geom = (output.rect.x, output.rect.y, output.rect.width, output.rect.height)
+
+        if port in _screen_cache and _screen_cache[port][1] != geom:
+            del _screen_cache[port]
+
         if port not in _screen_cache:
-            _screen_cache[port] = Screen(
-                top=_build_bar(is_main=(i == 0)),
-                wallpaper=_wp,
-                wallpaper_mode="fill",
+            _screen_cache[port] = (
+                Screen(
+                    top=_build_bar(is_main=(port == main_port)),
+                    wallpaper=_wp,
+                    wallpaper_mode="fill",
+                ),
+                geom,
             )
-        result.append(_screen_cache[port])
+        result.append(_screen_cache[port][0])
     return result
 
 # Drag floating layouts.
