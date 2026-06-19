@@ -57,6 +57,35 @@ from libqtile.utils import guess_terminal
 
 from hosts import cfg
 
+# Workaround for qtile bug fixed in PR #5975 (not yet in installed version).
+# _finalize_configurables() finalizes widgets before bars, so a queued
+# Bar._actual_draw() can run after drawer.ctx and layout are already None.
+from libqtile.widget import base as _widget_base
+from libqtile import bar as _bar_module
+
+_orig_length = _widget_base._Widget.length.fget
+_orig_length_setter = _widget_base._Widget.length.fset
+
+
+def _patched_length(self: _widget_base._Widget) -> int:
+    if self.finalized:
+        return 0
+    return _orig_length(self)
+
+
+_widget_base._Widget.length = property(_patched_length, _orig_length_setter)
+
+_orig_actual_draw = _bar_module.Bar._actual_draw
+
+
+def _patched_actual_draw(self: _bar_module.Bar) -> None:
+    if not self.window:
+        return
+    _orig_actual_draw(self)
+
+
+_bar_module.Bar._actual_draw = _patched_actual_draw
+
 log = logging.getLogger(__name__)
 
 mod = "mod4"
@@ -77,24 +106,19 @@ def run_screenlock(qtile):
 
 
 @hook.subscribe.startup_once
-def autostart():
+def autostart() -> None:
     subprocess.call(str(Path("~/.config/qtile/autostart.sh").expanduser()))
 
-    # setting environment for systemd and dbus
-    log.info("Setting info")
-    denv = dict(os.environ)
-    denv["XDG_CURREN_DESKTOP"] = "qtile"
-    with subprocess.Popen(
-        [
-            "systemctl",
-            "--user",
-            "import-environment",
-            "WAYLAND_DISPLAY",
-            "XDG_CURRENT_DESKTOP",
-        ],
-        env=denv,
-    ) as process:
-        process.wait()
+    # Advertise the Wayland session to systemd and D-Bus so that logind
+    # recognises qtile as the active compositor and doesn't reclaim the
+    # DRM device on monitor hotplug.
+    env_vars = ["WAYLAND_DISPLAY", "XDG_CURRENT_DESKTOP", "DISPLAY"]
+    subprocess.Popen(
+        ["systemctl", "--user", "import-environment"] + env_vars
+    ).wait()
+    subprocess.Popen(
+        ["dbus-update-activation-environment", "--systemd"] + env_vars
+    ).wait()
 
 
 @lazy.function
