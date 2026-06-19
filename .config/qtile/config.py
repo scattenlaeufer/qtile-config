@@ -44,6 +44,7 @@ from libqtile.config import (
     Key,
     KeyChord,
     Match,
+    Output,
     Screen,
     ScratchPad,
     DropDown,
@@ -348,98 +349,102 @@ layouts = [
 widget_defaults = {"font": "DejaVus ans mono", "fontsize": 12, "padding": 3}
 extension_defaults = widget_defaults.copy()
 
-cpu_widget = widget.CPU(format="CPU {freq_current:3.1f}GHz {load_percent:5.1f}%")
-cpu_graph_widget = widget.CPUGraph()
-mem_widget = widget.Memory(
-    format="Mem: {MemUsed:4.1f}{mm}/{MemTotal:4.1f}{mm} Swap: {SwapUsed:4.1f}{ms}/{SwapTotal:4.1f}{ms}",
-    measure_mem="G",
-    measure_swap="G",
-)
-mem_graph_widget = widget.MemoryGraph()
-clock_widget = widget.Clock(format="KW%W %Y-%m-%d %a %H:%M:%S")
-volume_widget = widget.PulseVolume()
-battery_widget = widget.Battery()
-
-net_widget = widget.Net(prefix="M")
-wlan_widget = widget.Wlan(format="{essid} {percent:2.0%}")
-
-mpd_widget = widget.Mpd2(idle_message="mopidy idle")
-
-sep_widget = widget.Sep()
-
-_bar_right_widgets: list = [
-    sep_widget,
-    cpu_graph_widget,
-    cpu_widget,
-    sep_widget,
-    mem_graph_widget,
-    mem_widget,
-    sep_widget,
-]
-if cfg.has_wlan:
-    _bar_right_widgets += [wlan_widget, net_widget, sep_widget]
-if cfg.has_battery:
-    _bar_right_widgets += [battery_widget, sep_widget]
-_bar_right_widgets += [volume_widget, sep_widget, clock_widget]
-
 bar_height = 24
-main_bar = bar.Bar(
-    [
-        widget.CurrentLayout(mode="icon"),
-        sep_widget,
-        widget.GroupBox(disable_drag=True),
-        sep_widget,
-        widget.CurrentScreen(),
-        sep_widget,
-        widget.Prompt(),
-        widget.TaskList(),
-        widget.Chord(
-            chords_colors={
-                "launch": ("#ff0000", "#ffffff"),
-            },
-            name_transform=lambda name: name.upper(),
-        ),
-        mpd_widget,
-        *_bar_right_widgets,
-        sep_widget,
-        widget.StatusNotifier(),
-    ],
-    bar_height,
-    # border_width=[2, 0, 2, 0],  # Draw top and bottom borders
-    # border_color=["ff00ff", "000000", "ff00ff", "000000"]  # Borders are magenta
-)
-
-
-def build_other_bar() -> bar.Bar:
-    return bar.Bar(
-        [
-            widget.CurrentLayout(mode="icon"),
-            sep_widget,
-            widget.GroupBox(disable_drag=True),
-            sep_widget,
-            widget.CurrentScreen(),
-            sep_widget,
-            widget.TaskList(),
-            mpd_widget,
-            *_bar_right_widgets,
-        ],
-        bar_height,
-    )
-
-
 wallpaper_path = Path("~/.config/qtile/backgrounds/green-galaxy.jpg")
 
 
-def generate_screens(outputs: list) -> list[Screen]:
-    wp = str(wallpaper_path.expanduser())
-    return [
-        Screen(
-            top=main_bar if i == 0 else build_other_bar(),
-            wallpaper=wp,
-            wallpaper_mode="fill",
-        )
-        for i in range(len(outputs))
+def _build_bar(is_main: bool = False) -> bar.Bar:
+    right: list = [
+        widget.Sep(),
+        widget.CPUGraph(),
+        widget.CPU(format="CPU {freq_current:3.1f}GHz {load_percent:5.1f}%"),
+        widget.Sep(),
+        widget.MemoryGraph(),
+        widget.Memory(
+            format="Mem: {MemUsed:4.1f}{mm}/{MemTotal:4.1f}{mm} Swap: {SwapUsed:4.1f}{ms}/{SwapTotal:4.1f}{ms}",
+            measure_mem="G",
+            measure_swap="G",
+        ),
+        widget.Sep(),
     ]
+    if cfg.has_wlan:
+        right += [widget.Wlan(format="{essid} {percent:2.0%}"), widget.Net(prefix="M"), widget.Sep()]
+    if cfg.has_battery:
+        right += [widget.Battery(), widget.Sep()]
+    right += [widget.PulseVolume(), widget.Sep(), widget.Clock(format="KW%W %Y-%m-%d %a %H:%M:%S")]
+
+    left: list = [
+        widget.CurrentLayout(mode="icon"),
+        widget.Sep(),
+        widget.GroupBox(disable_drag=True),
+        widget.Sep(),
+        widget.CurrentScreen(),
+        widget.Sep(),
+    ]
+
+    if is_main:
+        middle: list = [
+            widget.Prompt(),
+            widget.TaskList(),
+            widget.Chord(
+                chords_colors={"launch": ("#ff0000", "#ffffff")},
+                name_transform=lambda name: name.upper(),
+            ),
+            widget.Mpd2(idle_message="mopidy idle"),
+        ]
+        widgets = left + middle + right + [widget.Sep(), widget.StatusNotifier()]
+    else:
+        middle = [widget.TaskList(), widget.Mpd2(idle_message="mopidy idle")]
+        widgets = left + middle + right
+
+    return bar.Bar(
+        widgets,
+        bar_height,
+        # border_width=[2, 0, 2, 0],  # Draw top and bottom borders
+        # border_color=["ff00ff", "000000", "ff00ff", "000000"]  # Borders are magenta
+    )
+
+
+def _count_connected_outputs() -> int:
+    return max(
+        1,
+        sum(
+            1
+            for p in Path("/sys/class/drm").glob("card*-*")
+            if (p / "status").exists()
+            and (p / "status").read_text().strip() == "connected"
+        ),
+    )
+
+
+_wp = str(wallpaper_path.expanduser())
+
+# Cache Screen objects by output port so the same physical output always
+# maps to the same Screen instance across reconfiguration calls.
+# This prevents bar finalization (and the ctx=None hook-callback bug that
+# follows) when shikane re-fires screen_change events for the same outputs.
+_screen_cache: dict[str, Screen] = {}
+
+
+def generate_screens(outputs: list[Output]) -> list[Screen]:
+    sorted_outputs = sorted(outputs, key=lambda o: (o.rect.x, o.rect.y))
+    active_ports = {o.port for o in sorted_outputs}
+
+    for port in list(_screen_cache.keys()):
+        if port not in active_ports:
+            del _screen_cache[port]
+
+    result: list[Screen] = []
+    for i, output in enumerate(sorted_outputs):
+        port = output.port
+        if port not in _screen_cache:
+            _screen_cache[port] = Screen(
+                top=_build_bar(is_main=(i == 0)),
+                wallpaper=_wp,
+                wallpaper_mode="fill",
+            )
+        result.append(_screen_cache[port])
+    return result
 
 # Drag floating layouts.
 mouse = [
