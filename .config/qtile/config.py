@@ -51,7 +51,10 @@ from libqtile.config import (
 from libqtile.lazy import lazy
 from libqtile.log_utils import logger
 from libqtile.utils import guess_terminal
+
 # from qtile_bonsai import Bonsai
+
+from hosts import cfg
 
 log = logging.getLogger(__name__)
 
@@ -93,26 +96,23 @@ def autostart():
         process.wait()
 
 
-@hook.subscribe.client_managed
-def float_dialogs(client):
-    pass
-
-
 @lazy.function
-def notify_window_info(qtile):
+def notify_window_info(qtile) -> None:
     w = qtile.current_window
     if not w:
         return
     i = w.info()
-    msg = "\n".join([
-        f"name:      {i.get('name')}",
-        f"wm_class:  {i.get('wm_class')}",
-        f"wm_type:   {i.get('wm_type')}",
-        f"shell:     {i.get('shell')}",
-        f"floating:  {i.get('floating')}",
-        f"position:  {i.get('x')}, {i.get('y')}",
-        f"size:      {i.get('width')} x {i.get('height')}",
-    ])
+    msg = "\n".join(
+        [
+            f"name:      {i.get('name')}",
+            f"wm_class:  {i.get('wm_class')}",
+            f"wm_type:   {i.get('wm_type')}",
+            f"shell:     {i.get('shell')}",
+            f"floating:  {i.get('floating')}",
+            f"position:  {i.get('x')}, {i.get('y')}",
+            f"size:      {i.get('width')} x {i.get('height')}",
+        ]
+    )
     qtile.spawn(f"notify-send 'Window Info' '{msg}'")
 
 
@@ -245,19 +245,23 @@ keys = [
         desc="Lower audio volume by 3%",
     ),
     # Monitor Brightness
-    Key(
-        [],
-        "XF86MonBrightnessDown",
-        lazy.spawn("brightnessctl set -q 10%-"),
-        desc="Lower monitor birghtness by 10%",
-    ),
-    Key(
-        [],
-        "XF86MonBrightnessUp",
-        lazy.spawn("brightnessctl set -q 10%+"),
-        desc="Raise monitor birghtness by 10%",
-    ),
 ]
+
+if cfg.has_brightness:
+    keys += [
+        Key(
+            [],
+            "XF86MonBrightnessDown",
+            lazy.spawn("brightnessctl set -q 10%-"),
+            desc="Lower monitor birghtness by 10%",
+        ),
+        Key(
+            [],
+            "XF86MonBrightnessUp",
+            lazy.spawn("brightnessctl set -q 10%+"),
+            desc="Raise monitor birghtness by 10%",
+        ),
+    ]
 
 # Add key bindings to switch VTs in Wayland.
 # We can't check qtile.core.name in default config as it is loaded before qtile is started
@@ -363,6 +367,21 @@ mpd_widget = widget.Mpd2(idle_message="mopidy idle")
 
 sep_widget = widget.Sep()
 
+_bar_right_widgets: list = [
+    sep_widget,
+    cpu_graph_widget,
+    cpu_widget,
+    sep_widget,
+    mem_graph_widget,
+    mem_widget,
+    sep_widget,
+]
+if cfg.has_wlan:
+    _bar_right_widgets += [wlan_widget, net_widget, sep_widget]
+if cfg.has_battery:
+    _bar_right_widgets += [battery_widget, sep_widget]
+_bar_right_widgets += [volume_widget, sep_widget, clock_widget]
+
 bar_height = 24
 main_bar = bar.Bar(
     [
@@ -381,21 +400,7 @@ main_bar = bar.Bar(
             name_transform=lambda name: name.upper(),
         ),
         mpd_widget,
-        sep_widget,
-        cpu_graph_widget,
-        cpu_widget,
-        sep_widget,
-        mem_graph_widget,
-        mem_widget,
-        sep_widget,
-        wlan_widget,
-        net_widget,
-        sep_widget,
-        battery_widget,
-        sep_widget,
-        volume_widget,
-        sep_widget,
-        clock_widget,
+        *_bar_right_widgets,
         sep_widget,
         widget.StatusNotifier(),
     ],
@@ -406,11 +411,6 @@ main_bar = bar.Bar(
 
 
 def build_other_bar() -> bar.Bar:
-    """
-    Create a Bar object to be used on screens other than the main srcenn
-
-    :return: Bar for other screens
-    """
     return bar.Bar(
         [
             widget.CurrentLayout(mode="icon"),
@@ -421,21 +421,7 @@ def build_other_bar() -> bar.Bar:
             sep_widget,
             widget.TaskList(),
             mpd_widget,
-            sep_widget,
-            cpu_graph_widget,
-            cpu_widget,
-            sep_widget,
-            mem_graph_widget,
-            mem_widget,
-            sep_widget,
-            wlan_widget,
-            net_widget,
-            sep_widget,
-            battery_widget,
-            sep_widget,
-            volume_widget,
-            sep_widget,
-            clock_widget,
+            *_bar_right_widgets,
         ],
         bar_height,
     )
@@ -443,28 +429,17 @@ def build_other_bar() -> bar.Bar:
 
 wallpaper_path = Path("~/.config/qtile/backgrounds/green-galaxy.jpg")
 
-screens = [
-    Screen(
-        top=main_bar,
-        wallpaper=str(wallpaper_path.expanduser()),
-        wallpaper_mode="fill",
-    ),
-    Screen(
-        top=build_other_bar(),
-        wallpaper=str(wallpaper_path.expanduser()),
-        wallpaper_mode="fill",
-    ),
-    Screen(
-        top=build_other_bar(),
-        wallpaper=str(wallpaper_path.expanduser()),
-        wallpaper_mode="fill",
-    ),
-    Screen(
-        top=build_other_bar(),
-        wallpaper=str(wallpaper_path.expanduser()),
-        wallpaper_mode="fill",
-    ),
-]
+
+def generate_screens(outputs: list) -> list[Screen]:
+    wp = str(wallpaper_path.expanduser())
+    return [
+        Screen(
+            top=main_bar if i == 0 else build_other_bar(),
+            wallpaper=wp,
+            wallpaper_mode="fill",
+        )
+        for i in range(len(outputs))
+    ]
 
 # Drag floating layouts.
 mouse = [

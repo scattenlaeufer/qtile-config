@@ -1,6 +1,9 @@
 #!/usr/bin/env sh
 
-# kanshi &
-shikane &
-# picom -b &
+SHIKANE_CFG="$HOME/.config/shikane/configs/$(hostname).toml"
+if [ -f "$SHIKANE_CFG" ]; then
+    shikane -c "$SHIKANE_CFG" &
+else
+    shikane &
+fi
 dunst &
