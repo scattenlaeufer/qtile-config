@@ -29,7 +29,6 @@ then extended to meet my personal meets.
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import glob
 import os
 import logging
 import random
@@ -45,6 +44,7 @@ from libqtile.config import (
     Key,
     KeyChord,
     Match,
+    Output,
     Screen,
     ScratchPad,
     DropDown,
@@ -132,6 +132,11 @@ def suspend_lock():
 @hook.subscribe.screens_reconfigured
 def _reload_after_screen_change():
     if os.environ.pop('_QTILE_SCREEN_RELOADING', None):
+        return
+    actual = len(qtile.screens)
+    prev = int(os.environ.get('_QTILE_SCREEN_COUNT', str(actual)))
+    os.environ['_QTILE_SCREEN_COUNT'] = str(actual)
+    if actual == prev:
         return
     os.environ['_QTILE_SCREEN_RELOADING'] = '1'
     qtile.reload_config()
@@ -428,25 +433,15 @@ def build_other_bar() -> bar.Bar:
     )
 
 
-def _count_connected_outputs() -> int:
-    try:
-        return max(1, sum(
-            1 for f in glob.glob('/sys/class/drm/*/status')
-            if Path(f).read_text().strip() == 'connected'
-        ))
-    except Exception:
-        return 4
-
-_MAX_SCREENS = _count_connected_outputs()
-
-screens = [
-    Screen(
-        top=build_main_bar() if i == 0 else build_other_bar(),
-        wallpaper=str(wallpaper_path.expanduser()),
-        wallpaper_mode="fill",
-    )
-    for i in range(_MAX_SCREENS)
-]
+def generate_screens(outputs: list[Output]) -> list[Screen]:
+    return [
+        Screen(
+            top=build_main_bar() if i == 0 else build_other_bar(),
+            wallpaper=str(wallpaper_path.expanduser()),
+            wallpaper_mode="fill",
+        )
+        for i in range(len(outputs))
+    ]
 
 # Drag floating layouts.
 mouse = [
