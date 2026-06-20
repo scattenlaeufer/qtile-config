@@ -29,6 +29,7 @@ then extended to meet my personal meets.
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import glob
 import os
 import logging
 import random
@@ -126,6 +127,14 @@ def notify_window_info(qtile):
 @hook.subscribe.suspend
 def suspend_lock():
     qtile.spawn(lock_cmd())
+
+
+@hook.subscribe.screens_reconfigured
+def _reload_after_screen_change():
+    if os.environ.pop('_QTILE_SCREEN_RELOADING', None):
+        return
+    os.environ['_QTILE_SCREEN_RELOADING'] = '1'
+    qtile.reload_config()
 
 
 neo = {
@@ -419,7 +428,16 @@ def build_other_bar() -> bar.Bar:
     )
 
 
-_MAX_SCREENS = 8
+def _count_connected_outputs() -> int:
+    try:
+        return max(1, sum(
+            1 for f in glob.glob('/sys/class/drm/*/status')
+            if Path(f).read_text().strip() == 'connected'
+        ))
+    except Exception:
+        return 4
+
+_MAX_SCREENS = _count_connected_outputs()
 
 screens = [
     Screen(
