@@ -384,8 +384,11 @@ def _common_widgets() -> list:
         ),
         widget.Sep(),
     ]
-    if cfg.has_wlan:
-        widgets += [widget.Wlan(format="{essid} {percent:2.0%}"), widget.Sep()]
+    if cfg.wlan_interface:
+        widgets += [
+            widget.Wlan(interface=cfg.wlan_interface, format="{essid} {percent:2.0%}"),
+            widget.Sep(),
+        ]
     widgets += [widget.Net(prefix="M"), widget.Sep()]
     if cfg.has_battery:
         widgets += [widget.Battery(), widget.Sep()]
