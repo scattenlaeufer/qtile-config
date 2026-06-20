@@ -31,6 +31,7 @@ then extended to meet my personal meets.
 
 import os
 import logging
+import re
 import random
 import subprocess
 from pathlib import Path
@@ -43,6 +44,8 @@ from libqtile.config import (
     Group,
     Key,
     KeyChord,
+    InvertMatch,
+    MatchAll,
     Match,
     Output,
     Screen,
@@ -485,6 +488,16 @@ floating_layout = layout.Floating(
         Match(wm_type="dialog"),
         Match(func=lambda c: bool(c.is_transient_for())),
         Match(title="Open Files"),
+        # FreeCAD
+        MatchAll(
+            Match(wm_class="org.freecad.FreeCAD"),
+            InvertMatch(Match(title=re.compile(r".*(?:FreeCAD).*"))),
+        ),
+        # PrusaSlicer
+        MatchAll(
+            Match(wm_class="prusa-slicer"),
+            InvertMatch(Match(title=re.compile(r".*(?:PrusaSlicer).*(?:based on Slic3r).*"))),
+        ),
     ]
 )
 auto_fullscreen = True

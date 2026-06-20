@@ -1,0 +1,70 @@
+[[profile]]
+    name = "with TV"
+    exec = ["notify-send shikane \"Profile $SHIKANE_PROFILE_NAME has been applied\""]
+
+    [[profile.output]]
+        enable = true
+        search = ["m=DELL U2723QE", "s=GS054P3", "v=Dell Inc."]
+        mode = "3840x2160@59.997Hz"
+        position = "1920,0"
+        scale = 1.0
+        transform = "normal"
+        adaptive_sync = false
+
+    [[profile.output]]
+        enable = true
+        search = ["m=PHL 276E8V", "s=0x00000DC0", "v=Philips Consumer Electronics Company"]
+        mode = "3840x2160@59.997Hz"
+        position = "5760,0"
+        scale = 1.0
+        transform = "normal"
+        adaptive_sync = false
+
+    [[profile.output]]
+        enable = true
+        search = ["m=DELL U2212HM", "s=Y9KCH19K00PL", "v=Dell Inc."]
+        mode = "1920x1080@60Hz"
+        position = "0,0"
+        scale = 1.0
+        transform = "normal"
+        adaptive_sync = false
+
+    [[profile.output]]
+        enable = true
+        search = ["m=Philips FTV", "s=0x01010101", "v=Philips Consumer Electronics Company"]
+        mode = "3840x2160@30Hz"
+        position = "9600,0"
+        scale = 1.0
+        transform = "normal"
+        adaptive_sync = false
+
+[[profile]]
+    name = "without TV"
+    exec = ["notify-send shikane \"Profile $SHIKANE_PROFILE_NAME has been applied\""]
+
+    [[profile.output]]
+        enable = true
+        search = ["m=DELL U2723QE", "s=GS054P3", "v=Dell Inc."]
+        mode = "3840x2160@59.997Hz"
+        position = "1920,0"
+        scale = 1.0
+        transform = "normal"
+        adaptive_sync = false
+
+    [[profile.output]]
+        enable = true
+        search = ["m=DELL U2212HM", "s=Y9KCH19K00PL", "v=Dell Inc."]
+        mode = "1920x1080@60Hz"
+        position = "0,0"
+        scale = 1.0
+        transform = "normal"
+        adaptive_sync = false
+
+    [[profile.output]]
+        enable = true
+        search = ["m=PHL 276E8V", "s=0x00000DC0", "v=Philips Consumer Electronics Company"]
+        mode = "3840x2160@59.997Hz"
+        position = "5760,0"
+        scale = 1.0
+        transform = "normal"
+        adaptive_sync = false
