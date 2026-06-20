@@ -135,19 +135,6 @@ def suspend_lock():
     qtile.spawn(lock_cmd())
 
 
-@hook.subscribe.screens_reconfigured
-def _reload_after_screen_change():
-    if os.environ.pop("_QTILE_SCREEN_RELOADING", None):
-        return
-    actual = len(qtile.screens)
-    prev = int(os.environ.get("_QTILE_SCREEN_COUNT", str(actual)))
-    os.environ["_QTILE_SCREEN_COUNT"] = str(actual)
-    if actual == prev:
-        return
-    os.environ["_QTILE_SCREEN_RELOADING"] = "1"
-    qtile.reload_config()
-
-
 neo = {
     "h": "s",
     "j": "n",
@@ -444,15 +431,25 @@ def build_other_bar() -> bar.Bar:
     )
 
 
-def generate_screens(outputs: list[Output]) -> list[Screen]:
-    return [
-        Screen(
-            top=build_main_bar() if i == 0 else build_other_bar(),
-            wallpaper=str(wallpaper_path.expanduser()),
-            wallpaper_mode="fill",
-        )
-        for i in range(len(outputs))
-    ]
+# def generate_screens(outputs: list[Output]) -> list[Screen]:
+#     logger.warning("logger: %s", outputs)
+#     return [
+#         Screen(
+#             top=build_main_bar() if i == 0 else build_other_bar(),
+#             wallpaper=str(wallpaper_path.expanduser()),
+#             wallpaper_mode="fill",
+#         )
+#         for i in range(len(outputs))
+#     ]
+
+screens = [
+    Screen(
+        top=build_main_bar() if i == 0 else build_other_bar(),
+        wallpaper=str(wallpaper_path.expanduser()),
+        wallpaper_mode="fill",
+    )
+    for i in range(4)
+]
 
 
 # Drag floating layouts.
@@ -496,7 +493,9 @@ floating_layout = layout.Floating(
         # PrusaSlicer
         MatchAll(
             Match(wm_class="prusa-slicer"),
-            InvertMatch(Match(title=re.compile(r".*(?:PrusaSlicer).*(?:based on Slic3r).*"))),
+            InvertMatch(
+                Match(title=re.compile(r".*(?:PrusaSlicer).*(?:based on Slic3r).*"))
+            ),
         ),
     ]
 )
