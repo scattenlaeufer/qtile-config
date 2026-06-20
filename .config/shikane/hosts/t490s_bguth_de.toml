@@ -1,0 +1,13 @@
+[[profile]]
+name = "builtin LCD"
+exec = ["notify-send shikane \"Profile $SHIKANE_PROFILE_NAME has been applied\""]
+
+[[profile.output]]
+enable = true
+search = ["m=0x0631", "s=", "v=LG Display"]
+mode = "1920x1080@59.999Hz"
+position = "0,0"
+scale = 1.0
+transform = "normal"
+adaptive_sync = false
+
