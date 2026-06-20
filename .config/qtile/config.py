@@ -53,6 +53,7 @@ from libqtile.lazy import lazy
 from libqtile.log_utils import logger
 from libqtile.utils import guess_terminal
 from hosts import cfg, hostname
+
 # from qtile_bonsai import Bonsai
 
 log = logging.getLogger(__name__)
@@ -112,15 +113,17 @@ def notify_window_info(qtile):
     if not w:
         return
     i = w.info()
-    msg = "\n".join([
-        f"name:      {i.get('name')}",
-        f"wm_class:  {i.get('wm_class')}",
-        f"wm_type:   {i.get('wm_type')}",
-        f"shell:     {i.get('shell')}",
-        f"floating:  {i.get('floating')}",
-        f"position:  {i.get('x')}, {i.get('y')}",
-        f"size:      {i.get('width')} x {i.get('height')}",
-    ])
+    msg = "\n".join(
+        [
+            f"name:      {i.get('name')}",
+            f"wm_class:  {i.get('wm_class')}",
+            f"wm_type:   {i.get('wm_type')}",
+            f"shell:     {i.get('shell')}",
+            f"floating:  {i.get('floating')}",
+            f"position:  {i.get('x')}, {i.get('y')}",
+            f"size:      {i.get('width')} x {i.get('height')}",
+        ]
+    )
     qtile.spawn(f"notify-send 'Window Info' '{msg}'")
 
 
@@ -131,14 +134,14 @@ def suspend_lock():
 
 @hook.subscribe.screens_reconfigured
 def _reload_after_screen_change():
-    if os.environ.pop('_QTILE_SCREEN_RELOADING', None):
+    if os.environ.pop("_QTILE_SCREEN_RELOADING", None):
         return
     actual = len(qtile.screens)
-    prev = int(os.environ.get('_QTILE_SCREEN_COUNT', str(actual)))
-    os.environ['_QTILE_SCREEN_COUNT'] = str(actual)
+    prev = int(os.environ.get("_QTILE_SCREEN_COUNT", str(actual)))
+    os.environ["_QTILE_SCREEN_COUNT"] = str(actual)
     if actual == prev:
         return
-    os.environ['_QTILE_SCREEN_RELOADING'] = '1'
+    os.environ["_QTILE_SCREEN_RELOADING"] = "1"
     qtile.reload_config()
 
 
@@ -260,20 +263,22 @@ keys = [
 ]
 
 if cfg.has_brightness:
-    keys.extend([
-        Key(
-            [],
-            "XF86MonBrightnessDown",
-            lazy.spawn("brightnessctl set -q 10%-"),
-            desc="Lower monitor birghtness by 10%",
-        ),
-        Key(
-            [],
-            "XF86MonBrightnessUp",
-            lazy.spawn("brightnessctl set -q 10%+"),
-            desc="Raise monitor birghtness by 10%",
-        ),
-    ])
+    keys.extend(
+        [
+            Key(
+                [],
+                "XF86MonBrightnessDown",
+                lazy.spawn("brightnessctl set -q 10%-"),
+                desc="Lower monitor birghtness by 10%",
+            ),
+            Key(
+                [],
+                "XF86MonBrightnessUp",
+                lazy.spawn("brightnessctl set -q 10%+"),
+                desc="Raise monitor birghtness by 10%",
+            ),
+        ]
+    )
 
 # Add key bindings to switch VTs in Wayland.
 # We can't check qtile.core.name in default config as it is loaded before qtile is started
@@ -442,6 +447,7 @@ def generate_screens(outputs: list[Output]) -> list[Screen]:
         )
         for i in range(len(outputs))
     ]
+
 
 # Drag floating layouts.
 mouse = [
