@@ -79,6 +79,7 @@ scale = 1.0
 transform = "normal"
 adaptive_sync = false
 
+
 [[profile]]
 name = "aixigo Office"
 
@@ -117,4 +118,3 @@ position = "3840,0"
 scale = 1.0
 transform = "normal"
 adaptive_sync = false
-

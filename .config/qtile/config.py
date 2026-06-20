@@ -51,7 +51,7 @@ from libqtile.config import (
 from libqtile.lazy import lazy
 from libqtile.log_utils import logger
 from libqtile.utils import guess_terminal
-from hosts import cfg
+from hosts import cfg, hostname
 # from qtile_bonsai import Bonsai
 
 log = logging.getLogger(__name__)
@@ -75,7 +75,13 @@ def run_screenlock(qtile):
 
 @hook.subscribe.startup_once
 def autostart():
-    subprocess.call(str(Path("~/.config/qtile/autostart.sh").expanduser()))
+    shikane_cfg = Path(f"~/.config/shikane/hosts/{hostname}.toml").expanduser()
+    if shikane_cfg.exists():
+        subprocess.Popen(["shikane", "-c", str(shikane_cfg)])
+    else:
+        subprocess.Popen(["shikane"])
+
+    subprocess.Popen(["dunst"])
 
     # setting environment for systemd and dbus
     log.info("Setting info")

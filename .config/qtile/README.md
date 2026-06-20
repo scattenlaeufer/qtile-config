@@ -7,9 +7,8 @@ Personal [qtile](https://qtile.org/) Wayland configuration, used across multiple
 ```
 ~/.config/qtile/
 ├── config.py               # Main configuration
-├── autostart.sh            # Startup hook (shikane, dunst)
 ├── hosts/
-│   ├── __init__.py         # Hostname dispatcher — exposes `cfg`
+│   ├── __init__.py         # Hostname dispatcher — exposes `cfg` and `hostname`
 │   ├── default.py          # Baseline defaults (desktop: no battery/wlan/brightness)
 │   └── <hostname>.py       # Per-machine overrides
 └── backgrounds/            # Wallpapers
@@ -82,6 +81,6 @@ Display layout (resolution, position, refresh rate) is handled separately by **s
 
 ## Autostart
 
-`autostart.sh` runs once on startup:
-- **shikane** — Wayland output management
+The `startup_once` hook in `config.py` launches on startup:
+- **shikane** — Wayland output management, with host-specific config if available
 - **dunst** — notification daemon
