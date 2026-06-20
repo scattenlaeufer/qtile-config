@@ -1,0 +1,15 @@
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# Type checker cache
+.mypy_cache/
+
+# IDE
+.idea/
+.vscode/
+
+# Claude Code (personal settings, memory, API keys)
+.claude/
+.mcp.json

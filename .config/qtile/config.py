@@ -51,6 +51,7 @@ from libqtile.config import (
 from libqtile.lazy import lazy
 from libqtile.log_utils import logger
 from libqtile.utils import guess_terminal
+from hosts import cfg
 # from qtile_bonsai import Bonsai
 
 log = logging.getLogger(__name__)
@@ -202,8 +203,6 @@ keys = [
         [mod, "control"],
         "r",
         lazy.reload_config(),
-        # lazy.spawn(Path("~/.config/polybar/startup.sh")),
-        # lazy.spawn("feh --bg-scale ~/.config/i3/green-galaxy.jpg"),
         desc="Reload the config",
     ),
     Key([mod, "control"], "q", lazy.shutdown(), desc="Shutdown Qtile"),
@@ -214,12 +213,6 @@ keys = [
         "Scroll_Lock",
         [Key([], "Pause", run_screenlock(), desc="Lock screen on key press")],
     ),
-    # Key(
-    #     [],
-    #     "Pause",
-    #     run_screenlock(),
-    #     desc="Lock screen on key press",
-    # ),
     # Multimedia Keys
     Key([], "XF86AudioPlay", lazy.spawn("mpc toggle"), desc="Play/Pause via MPC"),
     Key([], "XF86AudioNext", lazy.spawn("mpc next"), desc="Play next song via MPC"),
@@ -244,20 +237,23 @@ keys = [
         lazy.spawn("wpctl set-volume @DEFAULT_SINK@ .03-"),
         desc="Lower audio volume by 3%",
     ),
-    # Monitor Brightness
-    Key(
-        [],
-        "XF86MonBrightnessDown",
-        lazy.spawn("brightnessctl set -q 10%-"),
-        desc="Lower monitor birghtness by 10%",
-    ),
-    Key(
-        [],
-        "XF86MonBrightnessUp",
-        lazy.spawn("brightnessctl set -q 10%+"),
-        desc="Raise monitor birghtness by 10%",
-    ),
 ]
+
+if cfg.has_brightness:
+    keys.extend([
+        Key(
+            [],
+            "XF86MonBrightnessDown",
+            lazy.spawn("brightnessctl set -q 10%-"),
+            desc="Lower monitor birghtness by 10%",
+        ),
+        Key(
+            [],
+            "XF86MonBrightnessUp",
+            lazy.spawn("brightnessctl set -q 10%+"),
+            desc="Raise monitor birghtness by 10%",
+        ),
+    ])
 
 # Add key bindings to switch VTs in Wayland.
 # We can't check qtile.core.name in default config as it is loaded before qtile is started
@@ -344,126 +340,88 @@ layouts = [
 widget_defaults = {"font": "DejaVus ans mono", "fontsize": 12, "padding": 3}
 extension_defaults = widget_defaults.copy()
 
-cpu_widget = widget.CPU(format="CPU {freq_current:3.1f}GHz {load_percent:5.1f}%")
-cpu_graph_widget = widget.CPUGraph()
-mem_widget = widget.Memory(
-    format="Mem: {MemUsed:4.1f}{mm}/{MemTotal:4.1f}{mm} Swap: {SwapUsed:4.1f}{ms}/{SwapTotal:4.1f}{ms}",
-    measure_mem="G",
-    measure_swap="G",
-)
-mem_graph_widget = widget.MemoryGraph()
-clock_widget = widget.Clock(format="KW%W %Y-%m-%d %a %H:%M:%S")
-volume_widget = widget.PulseVolume()
-battery_widget = widget.Battery()
-
-net_widget = widget.Net(prefix="M")
-wlan_widget = widget.Wlan(format="{essid} {percent:2.0%}")
-
-mpd_widget = widget.Mpd2(idle_message="mopidy idle")
-
-sep_widget = widget.Sep()
-
 bar_height = 24
-main_bar = bar.Bar(
-    [
-        widget.CurrentLayout(mode="icon"),
-        sep_widget,
-        widget.GroupBox(disable_drag=True),
-        sep_widget,
-        widget.CurrentScreen(),
-        sep_widget,
-        widget.Prompt(),
-        widget.TaskList(),
-        widget.Chord(
-            chords_colors={
-                "launch": ("#ff0000", "#ffffff"),
-            },
-            name_transform=lambda name: name.upper(),
+wallpaper_path = Path("~/.config/qtile/backgrounds/green-galaxy.jpg")
+
+
+def _common_widgets() -> list:
+    widgets = [
+        widget.Mpd2(idle_message="mopidy idle"),
+        widget.Sep(),
+        widget.CPUGraph(),
+        widget.CPU(format="CPU {freq_current:3.1f}GHz {load_percent:5.1f}%"),
+        widget.Sep(),
+        widget.MemoryGraph(),
+        widget.Memory(
+            format="Mem: {MemUsed:4.1f}{mm}/{MemTotal:4.1f}{mm} Swap: {SwapUsed:4.1f}{ms}/{SwapTotal:4.1f}{ms}",
+            measure_mem="G",
+            measure_swap="G",
         ),
-        mpd_widget,
-        sep_widget,
-        cpu_graph_widget,
-        cpu_widget,
-        sep_widget,
-        mem_graph_widget,
-        mem_widget,
-        sep_widget,
-        wlan_widget,
-        net_widget,
-        sep_widget,
-        battery_widget,
-        sep_widget,
-        volume_widget,
-        sep_widget,
-        clock_widget,
-        sep_widget,
-        widget.StatusNotifier(),
-    ],
-    bar_height,
-    # border_width=[2, 0, 2, 0],  # Draw top and bottom borders
-    # border_color=["ff00ff", "000000", "ff00ff", "000000"]  # Borders are magenta
-)
+        widget.Sep(),
+    ]
+    if cfg.has_wlan:
+        widgets += [widget.Wlan(format="{essid} {percent:2.0%}"), widget.Sep()]
+    widgets += [widget.Net(prefix="M"), widget.Sep()]
+    if cfg.has_battery:
+        widgets += [widget.Battery(), widget.Sep()]
+    widgets += [
+        widget.PulseVolume(),
+        widget.Sep(),
+        widget.Clock(format="KW%W %Y-%m-%d %a %H:%M:%S"),
+    ]
+    return widgets
 
 
-def build_other_bar() -> bar.Bar:
-    """
-    Create a Bar object to be used on screens other than the main srcenn
-
-    :return: Bar for other screens
-    """
+def build_main_bar() -> bar.Bar:
     return bar.Bar(
         [
             widget.CurrentLayout(mode="icon"),
-            sep_widget,
+            widget.Sep(),
             widget.GroupBox(disable_drag=True),
-            sep_widget,
+            widget.Sep(),
             widget.CurrentScreen(),
-            sep_widget,
+            widget.Sep(),
+            widget.Prompt(),
             widget.TaskList(),
-            mpd_widget,
-            sep_widget,
-            cpu_graph_widget,
-            cpu_widget,
-            sep_widget,
-            mem_graph_widget,
-            mem_widget,
-            sep_widget,
-            wlan_widget,
-            net_widget,
-            sep_widget,
-            battery_widget,
-            sep_widget,
-            volume_widget,
-            sep_widget,
-            clock_widget,
+            widget.Chord(
+                chords_colors={
+                    "launch": ("#ff0000", "#ffffff"),
+                },
+                name_transform=lambda name: name.upper(),
+            ),
+            *_common_widgets(),
+            widget.Sep(),
+            widget.StatusNotifier(),
         ],
         bar_height,
     )
 
 
-wallpaper_path = Path("~/.config/qtile/backgrounds/green-galaxy.jpg")
+def build_other_bar() -> bar.Bar:
+    return bar.Bar(
+        [
+            widget.CurrentLayout(mode="icon"),
+            widget.Sep(),
+            widget.GroupBox(disable_drag=True),
+            widget.Sep(),
+            widget.CurrentScreen(),
+            widget.Sep(),
+            widget.TaskList(),
+            *_common_widgets(),
+        ],
+        bar_height,
+    )
+
+
+_MAX_SCREENS = 8
 
 screens = [
     Screen(
-        top=main_bar,
+        top=build_main_bar() if i == 0 else build_other_bar(),
         wallpaper=str(wallpaper_path.expanduser()),
         wallpaper_mode="fill",
-    ),
-    Screen(
-        top=build_other_bar(),
-        wallpaper=str(wallpaper_path.expanduser()),
-        wallpaper_mode="fill",
-    ),
-    Screen(
-        top=build_other_bar(),
-        wallpaper=str(wallpaper_path.expanduser()),
-        wallpaper_mode="fill",
-    ),
-    Screen(
-        top=build_other_bar(),
-        wallpaper=str(wallpaper_path.expanduser()),
-        wallpaper_mode="fill",
-    ),
+    )
+    for i in range(_MAX_SCREENS)
 ]
 
 # Drag floating layouts.
