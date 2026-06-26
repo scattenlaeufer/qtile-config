@@ -431,25 +431,27 @@ def build_other_bar() -> bar.Bar:
     )
 
 
-# def generate_screens(outputs: list[Output]) -> list[Screen]:
-#     logger.warning("logger: %s", outputs)
-#     return [
-#         Screen(
-#             top=build_main_bar() if i == 0 else build_other_bar(),
-#             wallpaper=str(wallpaper_path.expanduser()),
-#             wallpaper_mode="fill",
-#         )
-#         for i in range(len(outputs))
-#     ]
-
-screens = [
+# The main screen is always needed; initialise it once at module level.
+# Additional "other" screens are appended lazily as outputs are detected.
+_cached_screens: list[Screen] = [
     Screen(
-        top=build_main_bar() if i == 0 else build_other_bar(),
+        top=build_main_bar(),
         wallpaper=str(wallpaper_path.expanduser()),
         wallpaper_mode="fill",
     )
-    for i in range(4)
 ]
+
+
+def generate_screens(outputs: list[Output]) -> list[Screen]:
+    while len(_cached_screens) < len(outputs):
+        _cached_screens.append(
+            Screen(
+                top=build_other_bar(),
+                wallpaper=str(wallpaper_path.expanduser()),
+                wallpaper_mode="fill",
+            )
+        )
+    return _cached_screens[: len(outputs)]
 
 
 # Drag floating layouts.
