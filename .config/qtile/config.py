@@ -443,7 +443,8 @@ _cached_screens: list[Screen] = [
 
 
 def generate_screens(outputs: list[Output]) -> list[Screen]:
-    while len(_cached_screens) < len(outputs):
+    n = max(len(outputs), 1)
+    while len(_cached_screens) < n:
         _cached_screens.append(
             Screen(
                 top=build_other_bar(),
@@ -451,7 +452,8 @@ def generate_screens(outputs: list[Output]) -> list[Screen]:
                 wallpaper_mode="fill",
             )
         )
-    return _cached_screens[: len(outputs)]
+    del _cached_screens[n:]
+    return _cached_screens
 
 
 # Drag floating layouts.
