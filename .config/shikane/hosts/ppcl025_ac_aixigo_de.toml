@@ -72,7 +72,7 @@ adaptive_sync = false
 
 [[profile.output]]
 enable = true
-search = ["m=PHL 276E8V", "s=0x00000DC0", "v=Philips Consumer Electronics Company"]
+search = ["m=DELL S2725QS", "s=1LKN364", "v=Dell Inc."]
 mode = "3840x2160@59.997Hz"
 position = "3840,0"
 scale = 1.0
